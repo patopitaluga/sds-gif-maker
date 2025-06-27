@@ -1,7 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 
-const inputFilePath = 'sds1.mov';
+const inputFilePath = 'movie.mov';
 const outputDirectory = 'output_frames';
 
 ffmpeg(inputFilePath)
