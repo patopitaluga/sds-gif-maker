@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<div class="title">SDS Gif Maker</div>
+<div class="title">SDS Gif Maker v1</div>
 
 <div class="controls">
   <button id="createGif">🎞️ Create GIF</button>
@@ -102,6 +102,7 @@
       workerScript: '/gif.worker.js'
     });
 
+    /*
     gif.on('finished', function(blob) {
       const now = new Date();
       const year = now.getFullYear();
@@ -113,8 +114,24 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sds-gifmaker-${year}${month}${day}_${hour}${minutes}.gif`;
+      a.download = `sds-gifmaker-${year}-${month}-${day}_${hour}-${minutes}.gif`;
       a.click();
+      recording = false;
+    });
+    */
+
+    gif.on('finished', function(blob) {
+      const url = URL.createObjectURL(blob);
+      console.log('GIF blob created:', blob);
+      console.log('Download URL:', url);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'test.gif';
+      document.body.appendChild(a);  // required in some browsers
+      a.click();
+      a.remove();
+
       recording = false;
     });
 
