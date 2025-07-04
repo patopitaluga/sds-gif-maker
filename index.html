@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<div class="title">SDS Gif Maker v5</div>
+<div class="title">SDS Gif Maker v6</div>
 
 <div class="controls">
   <button id="createGif">🎞️ Create GIF</button>
@@ -42,6 +42,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <script src="gif.js"></script>
+
+<script>
+  const worker = new Worker('gif.worker.js');
+  worker.postMessage('ping');
+  worker.onmessage = (e) => console.log('Worker response:', e.data);
+</script>
 
 <script>
   let video;
@@ -95,7 +101,6 @@
 
   const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
   function startRecording() {
-    alert(1);
     gif = new GIF({
       workers: 2,
       quality: 10,
@@ -103,7 +108,6 @@
       height: height,
       workerScript: workerScriptPath
     });
-    alert(2);
 
     gif.on('finished', function(blob) {
       const now = new Date();
