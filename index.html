@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<div class="title">SDS Gif Maker v3</div>
+<div class="title">SDS Gif Maker v4</div>
 
 <div class="controls">
   <button id="createGif">🎞️ Create GIF</button>
@@ -93,13 +93,14 @@
     }
   }
 
+  const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
   function startRecording() {
     gif = new GIF({
       workers: 2,
       quality: 10,
       width: width,
       height: height,
-      workerScript: 'gif.worker.js'
+      workerScript: workerScriptPath
     });
 
     gif.on('finished', function(blob) {
