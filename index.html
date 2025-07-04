@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es-es">
+<head>
+  <meta charset="utf-8">
+  <title>SDS Gif Maker</title>
+
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="title">SDS Gif Maker</div>
+
+<div class="controls">
+  <button id="createGif">🎞️ Create GIF</button>
+  <button id="toggleDither">✨ Toggle Dither: ON</button>
+  <label>
+    Duration:
+    <select id="durationSelect">
+      <option value="1">1s</option>
+      <option value="2">2s</option>
+      <option value="3" selected>3s</option>
+      <option value="4">4s</option>
+      <option value="5">5s</option>
+      <option value="6">6s</option>
+      <option value="7">7s</option>
+      <option value="8">8s</option>
+      <option value="9">9s</option>
+      <option value="10">10s</option>
+    </select>
+  </label>
+  <label>
+    FPS:
+    <select id="fpsSelect">
+      <option value="15" selected>15 fps</option>
+      <option value="30">30 fps</option>
+      <option value="40">40 fps</option>
+    </select>
+  </label>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+
+<script>
+  let video;
+  let gif;
+  let recording = false;
+  let framesCaptured = 0;
+  let totalFrames = 0;
+  let fps = 15;
+  let duration = 3;
+  let useDither = false;
+
+  function setup() {
+    createCanvas(640, 480);
+    pixelDensity(1);
+    video = createCapture(VIDEO);
+    video.size(640, 480);
+    video.hide();
+
+    document.getElementById('createGif').addEventListener('click', startRecording);
+    document.getElementById('toggleDither').addEventListener('click', () => {
+      useDither = !useDither;
+      document.getElementById('toggleDither').textContent = `✨ Toggle Dither: ${useDither ? 'ON' : 'OFF'}`;
+    });
+
+    document.getElementById('durationSelect').addEventListener('change', e => {
+      duration = parseInt(e.target.value, 10);
+    });
+
+    document.getElementById('fpsSelect').addEventListener('change', e => {
+      fps = parseInt(e.target.value, 10);
+    });
+
+    // set initial dropdown values
+    document.getElementById('durationSelect').value = duration;
+    document.getElementById('fpsSelect').value = fps;
+  }
+
+  function draw() {
+    image(video, 0, 0, width, height);
+
+    if (useDither) applyBayerDither();
+
+    if (recording && framesCaptured < totalFrames) {
+      gif.addFrame(canvas, { copy: true, delay: 1000 / fps });
+      framesCaptured++;
+      if (framesCaptured === totalFrames) {
+        gif.render();
+      }
+    }
+  }
+
+  function startRecording() {
+    gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width: width,
+      height: height,
+      workerScript: '/gif.worker.js'
+    });
+
+    gif.on('finished', function(blob) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hour = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sds-gifmaker-${year}${month}${day}_${hour}${minutes}.gif`;
+      a.click();
+      recording = false;
+    });
+
+    framesCaptured = 0;
+    totalFrames = duration * fps;
+    recording = true;
+  }
+
+  function applyBayerDither() {
+    loadPixels();
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (x + y * width) * 4;
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        const gray = 0.3 * r + 0.59 * g + 0.11 * b;
+        const bayer4x4 = [
+          15,135, 45,165,
+         195, 75,225,105,
+          60,180, 30,150,
+         240,120,210, 90
+        ];
+        const threshold = bayer4x4[(x % 4) + (y % 4) * 4];
+        const d = gray > threshold ? 255 : 0;
+
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = d;
+      }
+    }
+    updatePixels();
+  }
+</script>
