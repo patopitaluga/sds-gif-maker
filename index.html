@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<div class="title">SDS Gif Maker v6</div>
+<div class="title">SDS Gif Maker v8</div>
 
 <div class="controls">
   <button id="createGif">🎞️ Create GIF</button>
@@ -42,13 +42,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <script src="gif.js"></script>
-
-<script>
-  const worker = new Worker('gif.worker.js');
-  worker.postMessage('ping');
-  worker.onmessage = (e) => console.log('Worker response:', e.data);
-</script>
-
 <script>
   let video;
   let gif;
@@ -85,19 +78,22 @@
     document.getElementById('fpsSelect').value = fps;
   }
 
-  function draw() {
-    image(video, 0, 0, width, height);
+function draw() {
+  image(video, 0, 0, width, height);
 
-    if (useDither) applyBayerDither();
+  if (useDither) applyBayerDither();
 
-    if (recording && framesCaptured < totalFrames) {
-      gif.addFrame(canvas, { copy: true, delay: 1000 / fps });
-      framesCaptured++;
-      if (framesCaptured === totalFrames) {
-        gif.render();
-      }
+  if (recording && framesCaptured < totalFrames) {
+    console.log(`Adding frame ${framesCaptured + 1} / ${totalFrames}`);
+    gif.addFrame(canvas, { copy: true, delay: 1000 / fps });
+    framesCaptured++;
+
+    if (framesCaptured === totalFrames) {
+      console.log('Calling gif.render()');
+      gif.render();
     }
   }
+}
 
   const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
   function startRecording() {
@@ -124,7 +120,18 @@
       a.click();
       recording = false;
     });
-  };
+
+    gif.on('progress', p => {
+      console.log('Rendering progress:', Math.round(p * 100) + '%');
+    });
+
+    // ✅ Add these lines back
+    framesCaptured = 0;
+    totalFrames = duration * fps;
+    recording = true;
+
+    console.log('Started recording', totalFrames, 'frames at', fps, 'fps');
+  }
 
   function applyBayerDither() {
     loadPixels();
