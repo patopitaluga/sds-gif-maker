@@ -1,160 +1,160 @@
 <!DOCTYPE html>
 <html lang="es-es">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>SDS Gif Maker</title>
-
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover">
-
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* tiny styles to keep things readable */
+    #sketch-container { position: relative; display: inline-block; }
+    .overlay-controls { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; }
+    #thumbnails canvas { cursor: pointer; border: 1px solid #333; }
+    .controls { margin-top: 8px; }
+  </style>
 </head>
 <body>
+<div class="title">SDS Gif Maker v10</div>
 
-<div class="title">SDS Gif Maker v8</div>
+<div id="sketch-container">
+  <div class="overlay-controls">
+    <button id="takeScreenshot">📸 Take Screenshot</button>
+  </div>
+</div>
 
 <div class="controls">
   <button id="createGif">🎞️ Create GIF</button>
-  <button id="toggleDither">✨ Toggle Dither: ON</button>
-  <label>
-    Duration:
-    <select id="durationSelect">
-      <option value="1">1s</option>
-      <option value="2">2s</option>
-      <option value="3" selected>3s</option>
-      <option value="4">4s</option>
-      <option value="5">5s</option>
-      <option value="6">6s</option>
-      <option value="7">7s</option>
-      <option value="8">8s</option>
-      <option value="9">9s</option>
-      <option value="10">10s</option>
-    </select>
-  </label>
-  <label>
-    FPS:
-    <select id="fpsSelect">
-      <option value="15" selected>15 fps</option>
-      <option value="30">30 fps</option>
-      <option value="40">40 fps</option>
-    </select>
+  <label style="margin-left:10px;">
+    Frame Delay (ms):
+    <input id="frameDelay" type="number" value="200" min="50" step="10" style="width:60px;">
   </label>
 </div>
+
+
+<div id="thumbnailsContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <script src="gif.js"></script>
 <script>
-  let video;
-  let gif;
-  let recording = false;
-  let framesCaptured = 0;
-  let totalFrames = 0;
-  let fps = 15;
-  let duration = 3;
-  let useDither = false;
+let video;
+let gif;
+const screenshots = []; // will store HTMLCanvasElement frames
+const WIDTH = 320;
+const HEIGHT = 240;
+let mainCanvasElt = null;
+const thumbW = 160, thumbH = 120;
+const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
 
-  function setup() {
-    createCanvas(640, 480);
-    pixelDensity(1);
-    video = createCapture(VIDEO);
-    video.size(640, 480);
-    video.hide();
+function setup() {
+  console.log('p5 setup running');
+  const canvas = createCanvas(WIDTH, HEIGHT);
+  canvas.parent('sketch-container');
+  pixelDensity(1);
+  mainCanvasElt = canvas.elt;
 
-    document.getElementById('createGif').addEventListener('click', startRecording);
-    document.getElementById('toggleDither').addEventListener('click', () => {
-      useDither = !useDither;
-      document.getElementById('toggleDither').textContent = `✨ Toggle Dither: ${useDither ? 'ON' : 'OFF'}`;
-    });
+  video = createCapture(VIDEO, () => {
+    console.log('camera started');
+  });
+  video.size(640, 480); // capture larger, but we draw it scaled to WIDTHxHEIGHT
+  video.hide();
 
-    document.getElementById('durationSelect').addEventListener('change', e => {
-      duration = parseInt(e.target.value, 10);
-    });
-
-    document.getElementById('fpsSelect').addEventListener('change', e => {
-      fps = parseInt(e.target.value, 10);
-    });
-
-    // set initial dropdown values
-    document.getElementById('durationSelect').value = duration;
-    document.getElementById('fpsSelect').value = fps;
-  }
-
-function draw() {
-  image(video, 0, 0, width, height);
-
-  if (useDither) applyBayerDither();
-
-  if (recording && framesCaptured < totalFrames) {
-    console.log(`Adding frame ${framesCaptured + 1} / ${totalFrames}`);
-    gif.addFrame(canvas, { copy: true, delay: 1000 / fps });
-    framesCaptured++;
-
-    if (framesCaptured === totalFrames) {
-      console.log('Calling gif.render()');
-      gif.render();
-    }
-  }
+  document.getElementById('takeScreenshot').addEventListener('click', takeScreenshot);
+  document.getElementById('createGif').addEventListener('click', createGifFromScreenshots);
 }
 
-  const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
-  function startRecording() {
-    gif = new GIF({
-      workers: 2,
-      quality: 10,
-      width: width,
-      height: height,
-      workerScript: workerScriptPath
-    });
+function draw() {
+  background(0);
+  if (video) image(video, 0, 0, WIDTH, HEIGHT);
+}
 
-    gif.on('finished', function(blob) {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hour = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
+function addScreenshotThumbnail(canvas) {
+  const container = document.createElement('div');
+  container.className = 'thumbnail';
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sds-gifmaker-${year}-${month}-${day}_${hour}-${minutes}.gif`;
-      a.click();
-      recording = false;
-    });
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL();
+  
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.textContent = '🗑️';
+  
+  deleteBtn.addEventListener('click', () => {
+    const index = screenshots.indexOf(canvas);
+    if (index > -1) {
+      screenshots.splice(index, 1);
+    }
+    container.remove();
+  });
 
-    gif.on('progress', p => {
-      console.log('Rendering progress:', Math.round(p * 100) + '%');
-    });
+  container.appendChild(img);
+  container.appendChild(deleteBtn);
+  
+  document.getElementById('thumbnailsContainer').appendChild(container);
+}
 
-    // ✅ Add these lines back
-    framesCaptured = 0;
-    totalFrames = duration * fps;
-    recording = true;
 
-    console.log('Started recording', totalFrames, 'frames at', fps, 'fps');
+function takeScreenshot() {
+  // copy main canvas (what user sees) into a new canvas
+  const full = document.createElement('canvas');
+  full.width = WIDTH;
+  full.height = HEIGHT;
+  const fctx = full.getContext('2d');
+  fctx.drawImage(mainCanvasElt, 0, 0, WIDTH, HEIGHT);
+
+  // store the full-size canvas for GIF creation
+  screenshots.push(full);
+
+  // create thumbnail
+  const thumb = document.createElement('canvas');
+  thumb.width = thumbW;
+  thumb.height = thumbH;
+  const tctx = thumb.getContext('2d');
+  tctx.drawImage(full, 0, 0, thumbW, thumbH);
+
+  // clicking thumbnail removes it from DOM and from screenshots array
+  thumb.addEventListener('click', () => {
+    const idx = screenshots.indexOf(full);
+    if (idx > -1) screenshots.splice(idx, 1);
+    thumb.remove();
+  });
+
+  addScreenshotThumbnail(full);
+}
+
+function createGifFromScreenshots() {
+  if (screenshots.length === 0) {
+    alert('No screenshots to make a GIF!');
+    return;
   }
 
-  function applyBayerDither() {
-    loadPixels();
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = (x + y * width) * 4;
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
+  const delay = parseInt(document.getElementById('frameDelay').value, 10) || 200;
 
-        const gray = 0.3 * r + 0.59 * g + 0.11 * b;
-        const bayer4x4 = [
-          15,135, 45,165,
-         195, 75,225,105,
-          60,180, 30,150,
-         240,120,210, 90
-        ];
-        const threshold = bayer4x4[(x % 4) + (y % 4) * 4];
-        const d = gray > threshold ? 255 : 0;
+  gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width: WIDTH,
+    height: HEIGHT,
+    workerScript: workerScriptPath
+  });
 
-        pixels[i] = pixels[i + 1] = pixels[i + 2] = d;
-      }
-    }
-    updatePixels();
-  };
+  screenshots.forEach(canvasFrame => {
+    gif.addFrame(canvasFrame, { copy: true, delay: delay });
+  });
+
+  gif.on('finished', function(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sds-gifmaker-${Date.now()}.gif`;
+    a.click();
+  });
+
+  gif.on('progress', p => {
+    console.log('GIF render progress', Math.round(p * 100) + '%');
+  });
+
+  gif.render();
+}
 </script>
+</body>
+</html>
