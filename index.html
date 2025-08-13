@@ -26,7 +26,7 @@
 
   <div class="controls">
     <button @click="createGifFromScreenshots()" v-if="screenshots.length > 0">🎞️ Download</button>
-    <button @click="createGifFromScreenshots(true)" v-if="screenshots.length > 0">Share</button>
+    <button @click="createGifFromScreenshots(true)" v-if="screenshots.length > 0 && browserCanShare">Share</button>
     <label style="margin-left:10px;">
       Frame Delay (ms):
       <input id="frameDelay" type="number" value="200" min="50" step="10" style="width:60px;">
@@ -57,7 +57,7 @@ const { createApp, ref } = Vue;
 let video;
 let gif;
 const WIDTH = 320;
-const HEIGHT = 240;
+let HEIGHT = 0; // will take ratio of webcam
 let mainCanvasElt = null;
 const thumbW = 160, thumbH = 120;
 const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
@@ -78,6 +78,7 @@ function getCurrentDateTime() {
 createApp({
   setup() {
     const screenshots = ref([]);
+    const browserCanShare = ref(Boolean(navigator.share));
 
     function createGifFromScreenshots(share = false) {
       if (screenshots.value.length === 0) {
@@ -101,21 +102,23 @@ createApp({
 
       gif.on('finished', function(blob) {
         if (share) {
-          navigator.share({
-            title: '',
-            text: '',
-            files: [
-              new File([
-                blob // the blob
-              ], `sds-gif-${getCurrentDateTime}`, { type: 'image/gif', lastModified: Date.now() })
-            ],
-          })
-            .then(function() {
-              // vueInstanceData.vdSharing = false;
-            })
-            .catch(function(err) {
-              console.log(err)
-            });
+          const fileToShare = new File([blob], `sds-gif-${getCurrentDateTime()}`, {
+            type: 'image/gif',
+            lastModified: Date.now()
+          });
+
+          browserCanShare.value = navigator.canShare && navigator.canShare({ files: [fileToShare] });
+          const shareGif = () => {
+            navigator.share({
+              title: '',
+              text: '',
+              files: [fileToShare]
+            }).catch(err => console.error(err));
+          }
+
+          const a = document.createElement('a');
+          a.onclick = shareGif;
+          a.click();
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -158,20 +161,35 @@ createApp({
 // p5
 function setup() {
   console.log('p5 setup running');
-  const canvas = createCanvas(WIDTH, HEIGHT);
-  canvas.parent('sketch-container');
+  const tempCanvasToDetermineRatio = createCanvas(WIDTH, HEIGHT);
+  tempCanvasToDetermineRatio.style.opacity = 0;
+  tempCanvasToDetermineRatio.style.width = 0;
+  tempCanvasToDetermineRatio.style.height = 0;  
+  tempCanvasToDetermineRatio.parent('sketch-container');
   pixelDensity(1);
-  mainCanvasElt = canvas.elt;
 
   video = createCapture(VIDEO, () => {
     console.log('camera started');
   });
-  video.size(640, 480); // capture larger, but we draw it scaled to WIDTHxHEIGHT
+  video.size(WIDTH * 2, WIDTH * 2); // capture larger, but we draw it scaled to WIDTHxHEIGHT
   video.hide();
+
+  video.elt.onloadedmetadata = () => {
+    const aspectRatio = video.elt.videoHeight / video.elt.videoWidth;
+    HEIGHT = WIDTH * aspectRatio;
+
+    tempCanvasToDetermineRatio.remove();
+
+    const canvas = createCanvas(WIDTH, HEIGHT);
+    pixelDensity(1);
+    mainCanvasElt = canvas.elt;
+  };
 }
 function draw() {
   background(0);
-  if (video) image(video, 0, 0, WIDTH, HEIGHT);
+  if (video) {
+    image(video, 0, 0, WIDTH, HEIGHT);
+  }
 }
 </script>
 </body>
