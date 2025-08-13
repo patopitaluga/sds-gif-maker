@@ -29,7 +29,7 @@
 <body>
 <div id="app-container">
 
-  <div class="title" style="text-align: center;">SDS Gif Maker v4</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker v5</div>
 
   <div style="display: flex; width: 100%; justify-content: center; align-items: center;overflow: hidden" :style="{ height: displayingPreview ? '0' : 'auto' }">
     <div id="sketch-container">
@@ -72,13 +72,108 @@
     </li>
   </ul>
 
+  <button @click="shareTestingGif">shareTestingGif</button>
 </div>
 <pre id="output" style="border: 1px red solid;">
 </pre>
 
+
+<button id="shareTest">Share White JPG</button>
+
+<script>
+document.getElementById('shareTest').addEventListener('click', async () => {
+  try {
+    // Create a tiny canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Convert to JPEG blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) return console.error('Failed to create blob');
+      
+      const file = new File([blob], 'white-square.jpg', { type: 'image/jpeg' });
+
+      // Share
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'Test JPEG',
+          text: 'This is a test',
+          files: [file]
+        });
+        console.log('Share succeeded');
+      } else {
+        console.warn('Cannot share this file');
+      }
+    }, 'image/jpeg', 0.95);
+  } catch (err) {
+    console.error('Share failed', err);
+  }
+});
+</script>
+
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <script src="gif.js"></script>
+
+
+
+
+<button id="shareTestGif">Share 2-frame GIF</button>
+
+<script src="gif.js"></script>
+<script>
+document.getElementById('shareTestGif').addEventListener('click', () => {
+  const WIDTH = 100;
+  const HEIGHT = 100;
+
+  // Create GIF instance
+  const gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width: WIDTH,
+    height: HEIGHT
+  });
+
+  // Helper to create a white frame canvas
+  function createWhiteFrame(color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    return canvas;
+  }
+
+  // Add two frames (white and light gray for visibility)
+  gif.addFrame(createWhiteFrame('white'), { delay: 500, copy: true });
+  gif.addFrame(createWhiteFrame('#ccc'), { delay: 500, copy: true });
+
+  gif.on('finished', (blob) => {
+    const file = new File([blob], 'two-frame.gif', { type: 'image/gif' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({
+        title: 'Test GIF',
+        text: '2-frame GIF',
+        files: [file]
+      }).then(() => console.log('Share succeeded'))
+        .catch(err => console.error('Share failed', err));
+    } else {
+      console.warn('Cannot share this file');
+    }
+  });
+
+  gif.render();
+});
+</script>
+
+
+
 <script>
 const { createApp, ref, onMounted, onUnmounted } = Vue;
 
@@ -138,9 +233,8 @@ createApp({
 
     const dummyFile = new File([''], 'dummy.gif', { type: 'image/gif' });
     const canShareFiles = navigator.canShare && navigator.canShare({ files: [dummyFile] });
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    const browserCanShare = ref(canShareFiles && isMobile);
+    const browserCanShare = ref(canShareFiles);
 
     let previewBlob;
     function createGifFromScreenshots(action) {
@@ -202,11 +296,8 @@ createApp({
       window.removeEventListener('resize', updateHeightAccordingToWebCamRatio);
     });
 
-    function shareGif() {
-      const fileToShare = new File([previewBlob], `sds-gif-${getCurrentDateTime()}`, {
-        type: 'image/gif',
-        lastModified: Date.now()
-      });
+    const shareGif = () => {
+      const fileToShare = new File([previewBlob], `sds-gif-${getCurrentDateTime()}`, { type: 'image/gif'});
 
       navigator.share({
         title: 'My GIF',
@@ -217,7 +308,53 @@ createApp({
           document.getElementById('output').innerHTML = err;
           console.error(err);
         });
+    };
+
+
+    const shareTestingGif = () => {
+  const WIDTH = 100;
+  const HEIGHT = 100;
+
+  // Create GIF instance
+  const gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width: WIDTH,
+    height: HEIGHT
+  });
+
+  // Helper to create a white frame canvas
+  function createWhiteFrame(color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    return canvas;
+  }
+
+  // Add two frames (white and light gray for visibility)
+  gif.addFrame(createWhiteFrame('white'), { delay: 500, copy: true });
+  gif.addFrame(createWhiteFrame('#ccc'), { delay: 500, copy: true });
+
+  gif.on('finished', (blob) => {
+    const file = new File([blob], 'two-frame.gif', { type: 'image/gif' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({
+        title: 'Test GIF',
+        text: '2-frame GIF',
+        files: [file]
+      }).then(() => console.log('Share succeeded'))
+        .catch(err => console.error('Share failed', err));
+    } else {
+      console.warn('Cannot share this file');
     }
+  });
+
+  gif.render();
+    };
 
     return {
       displayingPreview,
@@ -228,6 +365,7 @@ createApp({
       createGifFromScreenshots,
       handleTakeScreenshot,
       handleRemoveScreenshot,
+      shareTestingGif
     }
   }
 })
