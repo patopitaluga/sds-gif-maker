@@ -46,12 +46,14 @@ video, canvas {
   position: relative;
   display: inline-block;
   margin: 5px;
+  max-width: 25%;
+  width: 160px;
 }
 
 .thumbnail img {
   display: block;
-  width: 160px; /* adjust thumbnail size */
   height: auto;
+  width: 100%;
 }
 
 .delete-btn {
