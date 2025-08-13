@@ -5,6 +5,10 @@ import { readFileSync } from 'fs';
 const __dirname = resolve(new URL('.', import.meta.url).pathname);
 
 http.createServer((req, res) => {
+  if (req.url === '/gif.js') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    res.end(readFileSync(resolve(__dirname, './gif.js'), 'utf8'));
+  }
   if (req.url === '/gif.worker.js') {
     res.writeHead(200, { 'Content-Type': 'text/javascript' });
     res.end(readFileSync(resolve(__dirname, './gif.worker.js'), 'utf8'));
