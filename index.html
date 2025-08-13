@@ -14,37 +14,148 @@
   </style>
 </head>
 <body>
-<div class="title">SDS Gif Maker v10</div>
+<div id="app-container">
 
-<div id="sketch-container">
-  <div class="overlay-controls">
-    <button id="takeScreenshot">📸 Take Screenshot</button>
+  <div class="title">SDS Gif Maker</div>
+
+  <div id="sketch-container">
+    <div class="overlay-controls">
+      <button id="takeScreenshot" @click="handleTakeScreenshot">📸 Take Screenshot</button>
+    </div>
   </div>
+
+  <div class="controls">
+    <button @click="createGifFromScreenshots()" v-if="screenshots.length > 0">🎞️ Download</button>
+    <button @click="createGifFromScreenshots(true)" v-if="screenshots.length > 0">Share</button>
+    <label style="margin-left:10px;">
+      Frame Delay (ms):
+      <input id="frameDelay" type="number" value="200" min="50" step="10" style="width:60px;">
+    </label>
+  </div>
+
+
+  <ul id="thumbnailsContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
+
+    <li v-for="(eachScreenshot, index) in screenshots" class="thumbnail" :key="index">
+      <img :src="eachScreenshot.toDataURL()" />
+      <button
+        @click="handleRemoveScreenshot(index)"
+        class="delete-btn"
+        type="button"
+      >🗑️</button>
+    </li>
+  </ul>
+
 </div>
 
-<div class="controls">
-  <button id="createGif">🎞️ Create GIF</button>
-  <label style="margin-left:10px;">
-    Frame Delay (ms):
-    <input id="frameDelay" type="number" value="200" min="50" step="10" style="width:60px;">
-  </label>
-</div>
-
-
-<div id="thumbnailsContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
-
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <script src="gif.js"></script>
 <script>
+const { createApp, ref } = Vue;
+
 let video;
 let gif;
-const screenshots = []; // will store HTMLCanvasElement frames
 const WIDTH = 320;
 const HEIGHT = 240;
 let mainCanvasElt = null;
 const thumbW = 160, thumbH = 120;
 const workerScriptPath = new URL('gif.worker.js', window.location.href).toString();
 
+function getCurrentDateTime() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
+}
+
+createApp({
+  setup() {
+    const screenshots = ref([]);
+
+    function createGifFromScreenshots(share = false) {
+      if (screenshots.value.length === 0) {
+        alert('No screenshots to make a GIF!');
+        return;
+      }
+
+      const delay = parseInt(document.getElementById('frameDelay').value, 10) || 200;
+
+      gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: WIDTH,
+        height: HEIGHT,
+        workerScript: workerScriptPath
+      });
+
+      screenshots.value.forEach(canvasFrame => {
+        gif.addFrame(canvasFrame, { copy: true, delay: delay });
+      });
+
+      gif.on('finished', function(blob) {
+        if (share) {
+          navigator.share({
+            title: '',
+            text: '',
+            files: [
+              new File([
+                blob // the blob
+              ], `sds-gif-${getCurrentDateTime}`, { type: 'image/gif', lastModified: Date.now() })
+            ],
+          })
+            .then(function() {
+              // vueInstanceData.vdSharing = false;
+            })
+            .catch(function(err) {
+              console.log(err)
+            });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `sds-gifmaker-${Date.now()}.gif`;
+          a.click();
+        }
+      });
+
+      gif.on('progress', p => {
+        console.log('GIF render progress', Math.round(p * 100) + '%');
+      });
+
+      gif.render();
+    }
+
+    const handleTakeScreenshot = () => {
+      const currentStateOfCanvas = document.createElement('canvas');
+      currentStateOfCanvas.width = WIDTH;
+      currentStateOfCanvas.height = HEIGHT;
+      const fctx = currentStateOfCanvas.getContext('2d');
+      fctx.drawImage(mainCanvasElt, 0, 0, WIDTH, HEIGHT);
+
+      screenshots.value = [...screenshots.value, currentStateOfCanvas];
+    };
+
+    const handleRemoveScreenshot = (index) => {
+      screenshots.value = screenshots.value.splice(index, 1);
+    };
+
+    return {
+      screenshots,
+      createGifFromScreenshots,
+      handleTakeScreenshot,
+      handleRemoveScreenshot,
+    }
+  }
+}).mount('#app-container')
+
+// p5
 function setup() {
   console.log('p5 setup running');
   const canvas = createCanvas(WIDTH, HEIGHT);
@@ -57,103 +168,10 @@ function setup() {
   });
   video.size(640, 480); // capture larger, but we draw it scaled to WIDTHxHEIGHT
   video.hide();
-
-  document.getElementById('takeScreenshot').addEventListener('click', takeScreenshot);
-  document.getElementById('createGif').addEventListener('click', createGifFromScreenshots);
 }
-
 function draw() {
   background(0);
   if (video) image(video, 0, 0, WIDTH, HEIGHT);
-}
-
-function addScreenshotThumbnail(canvas) {
-  const container = document.createElement('div');
-  container.className = 'thumbnail';
-
-  const img = document.createElement('img');
-  img.src = canvas.toDataURL();
-  
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'delete-btn';
-  deleteBtn.textContent = '🗑️';
-  
-  deleteBtn.addEventListener('click', () => {
-    const index = screenshots.indexOf(canvas);
-    if (index > -1) {
-      screenshots.splice(index, 1);
-    }
-    container.remove();
-  });
-
-  container.appendChild(img);
-  container.appendChild(deleteBtn);
-  
-  document.getElementById('thumbnailsContainer').appendChild(container);
-}
-
-
-function takeScreenshot() {
-  // copy main canvas (what user sees) into a new canvas
-  const full = document.createElement('canvas');
-  full.width = WIDTH;
-  full.height = HEIGHT;
-  const fctx = full.getContext('2d');
-  fctx.drawImage(mainCanvasElt, 0, 0, WIDTH, HEIGHT);
-
-  // store the full-size canvas for GIF creation
-  screenshots.push(full);
-
-  // create thumbnail
-  const thumb = document.createElement('canvas');
-  thumb.width = thumbW;
-  thumb.height = thumbH;
-  const tctx = thumb.getContext('2d');
-  tctx.drawImage(full, 0, 0, thumbW, thumbH);
-
-  // clicking thumbnail removes it from DOM and from screenshots array
-  thumb.addEventListener('click', () => {
-    const idx = screenshots.indexOf(full);
-    if (idx > -1) screenshots.splice(idx, 1);
-    thumb.remove();
-  });
-
-  addScreenshotThumbnail(full);
-}
-
-function createGifFromScreenshots() {
-  if (screenshots.length === 0) {
-    alert('No screenshots to make a GIF!');
-    return;
-  }
-
-  const delay = parseInt(document.getElementById('frameDelay').value, 10) || 200;
-
-  gif = new GIF({
-    workers: 2,
-    quality: 10,
-    width: WIDTH,
-    height: HEIGHT,
-    workerScript: workerScriptPath
-  });
-
-  screenshots.forEach(canvasFrame => {
-    gif.addFrame(canvasFrame, { copy: true, delay: delay });
-  });
-
-  gif.on('finished', function(blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sds-gifmaker-${Date.now()}.gif`;
-    a.click();
-  });
-
-  gif.on('progress', p => {
-    console.log('GIF render progress', Math.round(p * 100) + '%');
-  });
-
-  gif.render();
 }
 </script>
 </body>
