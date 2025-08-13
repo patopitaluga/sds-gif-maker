@@ -7,8 +7,21 @@
   <link rel="stylesheet" href="style.css">
   <style>
     /* tiny styles to keep things readable */
-    #sketch-container { position: relative; display: inline-block; }
-    .overlay-controls { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; }
+    #sketch-container {
+      position: relative;
+      display: inline-block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .overlay-controls {
+      position: absolute;
+      border-radius: 4px;
+      box-sizing: border-box;
+      padding: 5px;
+      top: 0;
+      left: 0;
+      width: 100%;
+    }
     #thumbnails canvas { cursor: pointer; border: 1px solid #333; }
     .controls { margin-top: 8px; }
   </style>
@@ -16,23 +29,31 @@
 <body>
 <div id="app-container">
 
-  <div class="title">SDS Gif Maker</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker</div>
 
-  <div id="sketch-container">
-    <div class="overlay-controls">
-      <button id="takeScreenshot" @click="handleTakeScreenshot">📸 Take Screenshot</button>
+  <div style="display: flex; width: 100%; justify-content: center; align-items: center;">
+    <div id="sketch-container">
+      <div class="overlay-controls">
+        <button id="takeScreenshot" @click="handleTakeScreenshot">📸 Take Screenshot</button>
+      </div>
     </div>
   </div>
 
   <div class="controls">
     <button @click="createGifFromScreenshots()" v-if="screenshots.length > 0">🎞️ Download</button>
-    <button @click="createGifFromScreenshots(true)" v-if="screenshots.length > 0 && browserCanShare">Share</button>
+    <button @click="createGifFromScreenshots(true)" v-if="screenshots.length > 0 && browserCanShare">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;">
+        <path
+          d="M352 224c53 0 96-43 96-96s-43-96-96-96s-96 43-96 96c0 4 .2 8 .7 11.9l-94.1 47C145.4 170.2 121.9 160 96 160c-53 0-96 43-96 96s43 96 96 96c25.9 0 49.4-10.2 66.6-26.9l94.1 47c-.5 3.9-.7 7.8-.7 11.9c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-25.9 0-49.4 10.2-66.6 26.9l-94.1-47c.5-3.9 .7-7.8 .7-11.9s-.2-8-.7-11.9l94.1-47C302.6 213.8 326.1 224 352 224z"
+        />
+      </svg>
+      Share
+    </button>
     <label style="margin-left:10px;">
       Frame Delay (ms):
       <input id="frameDelay" type="number" value="200" min="50" step="10" style="width:60px;">
     </label>
   </div>
-
 
   <ul id="thumbnailsContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
 
@@ -52,7 +73,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <script src="gif.js"></script>
 <script>
-const { createApp, ref } = Vue;
+const { createApp, ref, onMounted, onUnmounted } = Vue;
 
 let video;
 let gif;
@@ -75,10 +96,43 @@ function getCurrentDateTime() {
   return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
 }
 
+let canvas
+const updateHeightAccordingToWebCamRatio = () => {
+  const tempCanvasToDetermineRatio = createCanvas(WIDTH, HEIGHT);
+  tempCanvasToDetermineRatio.style.opacity = 0;
+  tempCanvasToDetermineRatio.style.width = 0;
+  tempCanvasToDetermineRatio.style.height = 0;  
+  tempCanvasToDetermineRatio.parent('sketch-container');
+
+  video = createCapture(VIDEO, () => {
+    console.log('camera started');
+  });
+  video.size(WIDTH * 2, WIDTH * 2); // capture larger, but we draw it scaled to WIDTHxHEIGHT
+  video.hide();
+
+  video.elt.onloadedmetadata = () => {
+    const aspectRatio = video.elt.videoHeight / video.elt.videoWidth;
+    HEIGHT = WIDTH * aspectRatio;
+
+    tempCanvasToDetermineRatio.remove();
+
+    if (canvas) canvas.remove();
+    canvas = createCanvas(WIDTH, HEIGHT);
+    canvas.parent('sketch-container');
+    mainCanvasElt = canvas.elt;
+  };
+};
+
 createApp({
   setup() {
     const screenshots = ref([]);
-    const browserCanShare = ref(Boolean(navigator.share));
+
+    const dummyFile = new File([''], 'dummy.gif', { type: 'image/gif' });
+    const canShareFiles = navigator.canShare && navigator.canShare({ files: [dummyFile] });
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const showShareButton = canShareFiles && isMobile;
+
+    const browserCanShare = ref(canShareFiles && isMobile);
 
     function createGifFromScreenshots(share = false) {
       if (screenshots.value.length === 0) {
@@ -107,7 +161,6 @@ createApp({
             lastModified: Date.now()
           });
 
-          browserCanShare.value = navigator.canShare && navigator.canShare({ files: [fileToShare] });
           const shareGif = () => {
             navigator.share({
               title: '',
@@ -149,48 +202,41 @@ createApp({
       screenshots.value = screenshots.value.splice(index, 1);
     };
 
+    onMounted(() => {
+      window.addEventListener('resize', updateHeightAccordingToWebCamRatio);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', updateHeightAccordingToWebCamRatio);
+    });
+
     return {
+      browserCanShare,
       screenshots,
       createGifFromScreenshots,
       handleTakeScreenshot,
       handleRemoveScreenshot,
     }
   }
-}).mount('#app-container')
+})
+  .mount('#app-container');
 
 // p5
 function setup() {
-  console.log('p5 setup running');
-  const tempCanvasToDetermineRatio = createCanvas(WIDTH, HEIGHT);
-  tempCanvasToDetermineRatio.style.opacity = 0;
-  tempCanvasToDetermineRatio.style.width = 0;
-  tempCanvasToDetermineRatio.style.height = 0;  
-  tempCanvasToDetermineRatio.parent('sketch-container');
   pixelDensity(1);
-
-  video = createCapture(VIDEO, () => {
-    console.log('camera started');
-  });
-  video.size(WIDTH * 2, WIDTH * 2); // capture larger, but we draw it scaled to WIDTHxHEIGHT
-  video.hide();
-
-  video.elt.onloadedmetadata = () => {
-    const aspectRatio = video.elt.videoHeight / video.elt.videoWidth;
-    HEIGHT = WIDTH * aspectRatio;
-
-    tempCanvasToDetermineRatio.remove();
-
-    const canvas = createCanvas(WIDTH, HEIGHT);
-    pixelDensity(1);
-    mainCanvasElt = canvas.elt;
-  };
+  updateHeightAccordingToWebCamRatio();
 }
 function draw() {
   background(0);
-  if (video) {
-    image(video, 0, 0, WIDTH, HEIGHT);
-  }
+  if (video) image(video, 0, 0, WIDTH, HEIGHT);
 }
+
+window.addEventListener('beforeunload', () => {
+  if (video && video.elt && video.elt.srcObject)
+    video.elt.srcObject.getTracks().forEach(track => track.stop());
+  mainCanvasElt.remove();
+  if (gif && gif.abort) gif.abort();
+});
 </script>
 </body>
 </html>

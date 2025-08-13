@@ -8,8 +8,10 @@ body {
 }
 
 button {
-  margin-left: auto;
-  margin-right: auto;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 6px 8px;
 }
 
 video, canvas {
@@ -33,7 +35,10 @@ video, canvas {
   margin-bottom: 20px;
 }
 
-.controls { margin-top: 1rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+.controls {
+  margin-top: 1rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
+  align-items: center;
+}
 .controls > * { padding: 0.5rem; font-size: 1rem; }
 
 
@@ -64,4 +69,3 @@ video, canvas {
 .delete-btn:hover {
   background: rgba(200, 0, 0, 0.8);
 }
-
