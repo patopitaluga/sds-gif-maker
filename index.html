@@ -29,7 +29,7 @@
 <body>
 <div id="app-container">
 
-  <div class="title" style="text-align: center;">SDS Gif Maker v2</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker v3</div>
 
   <div style="display: flex; width: 100%; justify-content: center; align-items: center;overflow: hidden" :style="{ height: displayingPreview ? '0' : 'auto' }">
     <div id="sketch-container">
@@ -45,7 +45,7 @@
     <button v-if="displayingPreview" @click="displayingPreview = false">🎥 Show Live Cam</button>
     <button @click="createGifFromScreenshots('download')" v-if="screenshots.length > 0">🎞️ Download</button>
 
-    <button @click="createGifFromScreenshots('share')" v-if="screenshots.length > 0 && browserCanShare">
+    <button @click="shareGif" v-if="displayingPreview && screenshots.length > 0 && browserCanShare">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;">
         <path
           d="M352 224c53 0 96-43 96-96s-43-96-96-96s-96 43-96 96c0 4 .2 8 .7 11.9l-94.1 47C145.4 170.2 121.9 160 96 160c-53 0-96 43-96 96s43 96 96 96c25.9 0 49.4-10.2 66.6-26.9l94.1 47c-.5 3.9-.7 7.8-.7 11.9c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-25.9 0-49.4 10.2-66.6 26.9l-94.1-47c.5-3.9 .7-7.8 .7-11.9s-.2-8-.7-11.9l94.1-47C302.6 213.8 326.1 224 352 224z"
@@ -141,6 +141,7 @@ createApp({
 
     const browserCanShare = ref(canShareFiles && isMobile);
 
+    let previewBlob;
     function createGifFromScreenshots(action) {
       const delay = parseInt(document.getElementById('frameDelay').value, 10) || 200;
 
@@ -159,19 +160,8 @@ createApp({
       gif.on('finished', function(blob) {
         if (action === 'preview') {
           displayingPreview.value = true;
+          previewBlob = blob;
           previewImage.value = URL.createObjectURL(blob);
-        }
-        if (action === 'share') {
-          const fileToShare = new File([blob], `sds-gif-${getCurrentDateTime()}`, {
-            type: 'image/gif',
-            lastModified: Date.now()
-          });
-
-          navigator.share({
-            title: 'My GIF',
-            text: 'Created with SDS Gif Maker',
-            files: [fileToShare]
-          }).catch(err => console.error(err));
         }
         if (action === 'download') {
           const url = URL.createObjectURL(blob);
@@ -211,11 +201,25 @@ createApp({
       window.removeEventListener('resize', updateHeightAccordingToWebCamRatio);
     });
 
+    function shareGif() {
+      const fileToShare = new File([previewBlob], `sds-gif-${getCurrentDateTime()}`, {
+        type: 'image/gif',
+        lastModified: Date.now()
+      });
+
+      navigator.share({
+        title: 'My GIF',
+        text: 'Created with SDS Gif Maker',
+        files: [fileToShare]
+      }).catch(err => console.error(err));
+    }
+
     return {
       displayingPreview,
       previewImage,
       browserCanShare,
       screenshots,
+      shareGif,
       createGifFromScreenshots,
       handleTakeScreenshot,
       handleRemoveScreenshot,
