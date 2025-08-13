@@ -29,7 +29,7 @@
 <body>
 <div id="app-container">
 
-  <div class="title" style="text-align: center;">SDS Gif Maker v3</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker v4</div>
 
   <div style="display: flex; width: 100%; justify-content: center; align-items: center;overflow: hidden" :style="{ height: displayingPreview ? '0' : 'auto' }">
     <div id="sketch-container">
@@ -73,6 +73,8 @@
   </ul>
 
 </div>
+<pre id="output" style="border: 1px red solid;">
+</pre>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
@@ -137,7 +139,6 @@ createApp({
     const dummyFile = new File([''], 'dummy.gif', { type: 'image/gif' });
     const canShareFiles = navigator.canShare && navigator.canShare({ files: [dummyFile] });
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const showShareButton = canShareFiles && isMobile;
 
     const browserCanShare = ref(canShareFiles && isMobile);
 
@@ -211,7 +212,11 @@ createApp({
         title: 'My GIF',
         text: 'Created with SDS Gif Maker',
         files: [fileToShare]
-      }).catch(err => console.error(err));
+      })
+        .catch((err) => {
+          document.getElementById('output').innerHTML = err;
+          console.error(err);
+        });
     }
 
     return {
