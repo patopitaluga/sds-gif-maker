@@ -5,36 +5,22 @@
   <title>SDS Gif Maker</title>
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover">
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* tiny styles to keep things readable */
-    #sketch-container {
-      position: relative;
-      display: inline-block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .overlay-controls {
-      position: absolute;
-      border-radius: 4px;
-      box-sizing: border-box;
-      padding: 5px;
-      top: 0;
-      left: 0;
-      width: 100%;
-    }
-    #thumbnails canvas { cursor: pointer; border: 1px solid #333; }
-    .controls { margin-top: 8px; }
-  </style>
 </head>
 <body>
 <div id="app-container">
-
-  <div class="title" style="text-align: center;">SDS Gif Maker v6</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker v7</div>
 
   <div style="display: flex; width: 100%; justify-content: center; align-items: center;overflow: hidden" :style="{ height: displayingPreview ? '0' : 'auto' }">
     <div id="sketch-container">
       <div class="overlay-controls">
-        <button id="takeScreenshot" @click="handleTakeScreenshot">📸 Take Screenshot</button>
+        <button
+          @click="handleTakeScreenshot"
+          type="button"
+        >
+          <span>
+            📸 Take Screenshot
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -68,7 +54,7 @@
         @click="handleRemoveScreenshot(index)"
         class="delete-btn"
         type="button"
-      >🗑️</button>
+      ><span>🗑️</span></button>
     </li>
   </ul>
 </div>
@@ -113,6 +99,19 @@ const updateHeightAccordingToWebCamRatio = () => {
   };
 };
 
+const getFileName = () => {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  return `sds-gif-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.gif`;
+}
+
 createApp({
   setup() {
     const screenshots = ref([]);
@@ -141,6 +140,7 @@ createApp({
       });
 
       gif.on('finished', function(blob) {
+        blob.name = getFileName();
         if (action === 'preview') {
           displayingPreview.value = true;
           previewBlob = blob;
@@ -150,7 +150,7 @@ createApp({
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `sds-gifmaker-${Date.now()}.gif`;
+          a.download = blob.name;
           a.click();
         }
       });
@@ -185,16 +185,7 @@ createApp({
     });
 
     const shareGif = () => {
-      const now = new Date();
-
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-
-      const fileToShare = new File([previewBlob], `sds-gif-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.gif`, { type: 'image/gif' });
+      const fileToShare = new File([previewBlob], getFileName(), { type: 'image/gif' });
 
       navigator.share({
         title: 'My GIF',

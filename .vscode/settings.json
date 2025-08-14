@@ -1,0 +1,6 @@
+{
+    "search.exclude": {
+        "gif.js": true,
+        "gif.worker.js": true
+    }
+}

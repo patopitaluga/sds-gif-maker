@@ -57,17 +57,70 @@ video, canvas {
 }
 
 .delete-btn {
+  border-radius: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.delete-btn span {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: rgba(0, 0, 0, 0.6);
+  background: #666;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   padding: 2px 4px;
   cursor: pointer;
   font-size: 14px;
 }
-.delete-btn:hover {
-  background: rgba(200, 0, 0, 0.8);
+.delete-btn span:hover {
 }
+
+#sketch-container {
+  position: relative;
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+}
+.overlay-controls {
+  position: absolute;
+  border-radius: 4px;
+  box-sizing: border-box;
+  padding: 5px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  bottom: 0;
+}
+.overlay-controls button {
+  border-radius: 0;
+  background-color: transparent;
+  cursor: pointer;
+  display: block;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+.overlay-controls button span {
+  background-color: #eee;
+  border-radius: 5px;
+  display: inline-block;
+  padding: 6px 8px;
+  position: absolute;
+  left: 8px;
+  top: 8px;
+}
+#thumbnails canvas {
+  cursor: pointer; border: 1px solid #333;
+}
+.controls { margin-top: 8px; }
+
