@@ -7,8 +7,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<audio id="cameraSound" preload="auto">
+  <source src="camera1.mp3" type="audio/mpeg">
+</audio>
 <div id="app-container">
-  <div class="title" style="text-align: center;">SDS Gif Maker v9</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker v10</div>
 
   <div style="display: flex; width: 100%; justify-content: center; align-items: center;overflow: hidden" :style="{ height: displayingPreview ? '0' : 'auto' }">
     <div id="sketch-container">
@@ -16,6 +19,7 @@
         <button
           @click="handleTakeScreenshot"
           type="button"
+          class="whole-cam-button"
         >
           <span>
             📸 Take Screenshot
@@ -25,10 +29,9 @@
           @click="handleTakeBurst"
           type="button"
           :disabled="isCapturingBurst"
+          class="burst-button"
         >
-          <span>
-            {{ isCapturingBurst ? `📷 ${burstCountdown > 0 ? burstCountdown : 'Capturing...'}` : '📷 Take Burst' }}
-          </span>
+          {{ isCapturingBurst ? `📷 ${burstCountdown > 0 ? burstCountdown : 'Capturing...'}` : '📷 Take Burst' }}
         </button>
       </div>
     </div>
@@ -173,6 +176,14 @@ createApp({
       gif.render();
     }
 
+    const playCameraSound = () => {
+      const audio = document.getElementById('cameraSound');
+      if (audio) {
+        audio.currentTime = 0; // Reset to beginning
+        audio.play().catch(err => console.log('Audio play failed:', err));
+      }
+    };
+
     const handleTakeScreenshot = () => {
       const currentStateOfCanvas = document.createElement('canvas');
       currentStateOfCanvas.width = WIDTH;
@@ -181,6 +192,7 @@ createApp({
       fctx.drawImage(mainCanvasElt, 0, 0, WIDTH, HEIGHT);
 
       screenshots.value = [...screenshots.value, currentStateOfCanvas];
+      playCameraSound();
     };
 
     const handleTakeBurst = async () => {
