@@ -8,7 +8,7 @@
 </head>
 <body>
 <div id="app-container">
-  <div class="title" style="text-align: center;">SDS Gif Maker v8</div>
+  <div class="title" style="text-align: center;">SDS Gif Maker v9</div>
 
   <div style="display: flex; width: 100%; justify-content: center; align-items: center;overflow: hidden" :style="{ height: displayingPreview ? '0' : 'auto' }">
     <div id="sketch-container">
@@ -19,6 +19,15 @@
         >
           <span>
             📸 Take Screenshot
+          </span>
+        </button>
+        <button
+          @click="handleTakeBurst"
+          type="button"
+          :disabled="isCapturingBurst"
+        >
+          <span>
+            {{ isCapturingBurst ? `📷 ${burstCountdown > 0 ? burstCountdown : 'Capturing...'}` : '📷 Take Burst' }}
           </span>
         </button>
       </div>
@@ -117,6 +126,8 @@ createApp({
     const screenshots = ref([]);
     const displayingPreview = ref(false);
     const previewImage = ref();
+    const isCapturingBurst = ref(false);
+    const burstCountdown = ref(0);
 
     const dummyFile = new File([''], 'dummy.gif', { type: 'image/gif' });
     const canShareFiles = navigator.canShare && navigator.canShare({ files: [dummyFile] });
@@ -172,6 +183,32 @@ createApp({
       screenshots.value = [...screenshots.value, currentStateOfCanvas];
     };
 
+    const handleTakeBurst = async () => {
+      if (isCapturingBurst.value) return;
+      
+      isCapturingBurst.value = true;
+      
+      // 3 second countdown
+      burstCountdown.value = 3;
+      for (let i = 3; i > 0; i--) {
+        burstCountdown.value = i;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+        const delayBetweenPhotosInBurst = 1500;
+      // Take 5 photos, 1 second apart
+      for (let i = 0; i < 5; i++) {
+        burstCountdown.value = 0; // Show "Capturing..." during photos
+        handleTakeScreenshot();
+        if (i < 4) { // Don't wait after the last photo
+          await new Promise(resolve => setTimeout(resolve, delayBetweenPhotosInBurst));
+        }
+      }
+      
+      isCapturingBurst.value = false;
+      burstCountdown.value = 0;
+    };
+
     const handleRemoveScreenshot = (index) => {
       screenshots.value = screenshots.value.filter((_, i) => i !== index);
     };
@@ -202,9 +239,12 @@ createApp({
       previewImage,
       browserCanShare,
       screenshots,
+      isCapturingBurst,
+      burstCountdown,
       shareGif,
       createGifFromScreenshots,
       handleTakeScreenshot,
+      handleTakeBurst,
       handleRemoveScreenshot,
     };
   },

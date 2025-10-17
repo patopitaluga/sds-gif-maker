@@ -97,6 +97,8 @@ video, canvas {
   left: 0;
   width: 100%;
   bottom: 0;
+  display: flex;
+  gap: 5px;
 }
 .overlay-controls button {
   border-radius: 0;
@@ -104,11 +106,12 @@ video, canvas {
   cursor: pointer;
   display: block;
   height: 100%;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  position: relative;
+  flex: 1;
+}
+.overlay-controls button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .overlay-controls button span {
   background-color: #eee;
@@ -118,6 +121,7 @@ video, canvas {
   position: absolute;
   left: 8px;
   top: 8px;
+  white-space: nowrap;
 }
 #thumbnails canvas {
   cursor: pointer; border: 1px solid #333;
