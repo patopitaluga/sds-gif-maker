@@ -13,6 +13,10 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/javascript' });
     res.end(readFileSync(resolve(__dirname, './gif.worker.js'), 'utf8'));
   }
+  if (req.url === '/camera1.mp3') {
+    res.writeHead(200, { 'Content-Type': 'audio/mpeg' });
+    res.end(readFileSync(resolve(__dirname, './camera1.mp3'), 'utf8'));
+  }
   if (req.url === '/style.css') {
     res.writeHead(200, { 'Content-Type': 'text/css' });
     res.end(readFileSync(resolve(__dirname, './style.css'), 'utf8'));

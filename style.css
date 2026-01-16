@@ -5,6 +5,7 @@ body {
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  margin: 0;
 }
 
 button {
@@ -143,3 +144,6 @@ video, canvas {
 }
 .controls { margin-top: 8px; }
 
+.p5Canvas {
+  max-width: 100%;
+}
