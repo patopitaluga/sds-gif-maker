@@ -21,6 +21,10 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/css' });
     res.end(readFileSync(resolve(__dirname, './style.css'), 'utf8'));
   }
+  if (req.url === '/favicon.png') {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(readFileSync(resolve(__dirname, './favicon.png')));
+  }
   if (req.url === '/')
     res.end(readFileSync(resolve(__dirname, './index.html'), 'utf8'));
 })
