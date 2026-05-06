@@ -4,28 +4,46 @@ import { readFileSync } from 'fs';
 
 const __dirname = resolve(new URL('.', import.meta.url).pathname);
 
-http.createServer((req, res) => {
-  if (req.url === '/gif.js') {
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    res.end(readFileSync(resolve(__dirname, './gif.js'), 'utf8'));
+function pathnameOnly(reqUrl) {
+  try {
+    return new URL(reqUrl, 'http://localhost').pathname;
+  } catch {
+    return reqUrl.split('?')[0];
   }
-  if (req.url === '/gif.worker.js') {
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    res.end(readFileSync(resolve(__dirname, './gif.worker.js'), 'utf8'));
-  }
-  if (req.url === '/camera1.mp3') {
-    res.writeHead(200, { 'Content-Type': 'audio/mpeg' });
-    res.end(readFileSync(resolve(__dirname, './camera1.mp3'), 'utf8'));
-  }
-  if (req.url === '/style.css') {
-    res.writeHead(200, { 'Content-Type': 'text/css' });
-    res.end(readFileSync(resolve(__dirname, './style.css'), 'utf8'));
-  }
-  if (req.url === '/favicon.png') {
-    res.writeHead(200, { 'Content-Type': 'image/png' });
-    res.end(readFileSync(resolve(__dirname, './favicon.png')));
-  }
-  if (req.url === '/')
-    res.end(readFileSync(resolve(__dirname, './index.html'), 'utf8'));
-})
+}
+
+const routes = {
+  '/gif.js': { file: './gif.js', type: 'text/javascript; charset=utf-8' },
+  '/gif.worker.js': { file: './gif.worker.js', type: 'text/javascript; charset=utf-8' },
+  '/style.css': { file: './style.css', type: 'text/css; charset=utf-8' },
+  '/camera2.mp3': { file: './camera2.mp3', type: 'audio/mpeg' },
+};
+
+http
+  .createServer((req, res) => {
+    const pathname = pathnameOnly(req.url || '/');
+
+    if (req.method !== 'GET') {
+      res.writeHead(405, { 'Content-Type': 'text/plain' });
+      res.end('Method Not Allowed');
+      return;
+    }
+
+    const asset = routes[pathname];
+    if (asset) {
+      const body = readFileSync(resolve(__dirname, asset.file));
+      res.writeHead(200, { 'Content-Type': asset.type });
+      res.end(body);
+      return;
+    }
+
+    if (pathname === '/' || pathname === '/index.html') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(readFileSync(resolve(__dirname, './index.html'), 'utf8'));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  })
   .listen(3000, () => console.log('Listening port 3000'));

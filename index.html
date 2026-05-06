@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es-es">
 <head>
@@ -9,7 +10,7 @@
 </head>
 <body>
 <audio id="cameraSound" preload="auto">
-  <source src="camera1.mp3" type="audio/mpeg">
+  <source src="camera2.mp3" type="audio/mpeg">
 </audio>
 <div id="app-container">
   <div class="title" style="text-align: center;">SDS Gif Maker</div>
@@ -61,8 +62,21 @@
 
   <ul id="thumbnailsContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
 
-    <li v-for="(eachScreenshot, index) in screenshots" class="thumbnail" :key="index">
-      <img :src="eachScreenshot.toDataURL()" />
+    <li
+      v-for="(eachScreenshot, index) in screenshots"
+      class="thumbnail"
+      :class="{ 'thumbnail--drag-over': dragOverIndex === index }"
+      :key="index"
+      @dragover.prevent="dragOverIndex = index"
+      @dragleave="onThumbnailDragLeave($event, index)"
+      @drop.prevent="handleDropImageOnThumbnail($event, index)"
+    >
+      <img
+        draggable="true"
+        :src="eachScreenshot.toDataURL()"
+        alt=""
+        @dragstart="onScreenshotDragStart($event, index)"
+      />
       <button
         @click="handleRemoveScreenshot(index)"
         class="delete-btn"
@@ -226,6 +240,93 @@ createApp({
       screenshots.value = screenshots.value.filter((_, i) => i !== index);
     };
 
+    /** Browsers default data-URL drags to "download.png"; DownloadURL sets the desktop filename (Chrome, Edge, Safari). */
+    const onScreenshotDragStart = (event, index) => {
+      const canvas = screenshots.value[index];
+      if (!canvas) return;
+      const name = `sds-gif-frame-${String(index + 1).padStart(2, '0')}.png`;
+      const dataUrl = canvas.toDataURL('image/png');
+      try {
+        event.dataTransfer.setData('DownloadURL', `image/png:${name}:${dataUrl}`);
+      } catch (_) {
+        /* Firefox may reject; drag still works with default name */
+      }
+      event.dataTransfer.effectAllowed = 'copy';
+    };
+
+    const dragOverIndex = ref(null);
+
+    const ACCEPTED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+    const ACCEPTED_IMAGE_MIME = /^image\/(jpeg|png|gif|webp)$/i;
+
+    function isAcceptedImageFile(file) {
+      if (!file || !file.name) return false;
+      if (ACCEPTED_IMAGE_MIME.test(file.type)) return true;
+      const lower = file.name.toLowerCase();
+      const dot = lower.lastIndexOf('.');
+      if (dot === -1) return false;
+      return ACCEPTED_IMAGE_EXT.has(lower.slice(dot));
+    }
+
+    function drawImageContainOnCanvas(img, targetW, targetH) {
+      const out = document.createElement('canvas');
+      out.width = targetW;
+      out.height = targetH;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, targetW, targetH);
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      if (!nw || !nh) return out;
+      const scale = Math.min(targetW / nw, targetH / nh);
+      const dw = nw * scale;
+      const dh = nh * scale;
+      const dx = (targetW - dw) / 2;
+      const dy = (targetH - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+      return out;
+    }
+
+    const onThumbnailDragLeave = (event, index) => {
+      const li = event.currentTarget;
+      if (!li.contains(event.relatedTarget)) {
+        if (dragOverIndex.value === index) dragOverIndex.value = null;
+      }
+    };
+
+    const handleDropImageOnThumbnail = (event, index) => {
+      dragOverIndex.value = null;
+      const files = event.dataTransfer?.files;
+      if (!files || !files.length) return;
+      let file = null;
+      for (let i = 0; i < files.length; i++) {
+        if (isAcceptedImageFile(files[i])) {
+          file = files[i];
+          break;
+        }
+      }
+      if (!file) return;
+
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        if (!WIDTH || !HEIGHT) {
+          console.warn('Frame size not ready; cannot replace screenshot.');
+          return;
+        }
+        const frame = drawImageContainOnCanvas(img, WIDTH, HEIGHT);
+        const next = [...screenshots.value];
+        next[index] = frame;
+        screenshots.value = next;
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        console.warn('Could not load dropped image:', file.name);
+      };
+      img.src = url;
+    };
+
     onMounted(() => {
       window.addEventListener('resize', updateHeightAccordingToWebCamRatio);
     });
@@ -259,6 +360,10 @@ createApp({
       handleTakeScreenshot,
       handleTakeBurst,
       handleRemoveScreenshot,
+      onScreenshotDragStart,
+      dragOverIndex,
+      onThumbnailDragLeave,
+      handleDropImageOnThumbnail,
     };
   },
 })
@@ -283,4 +388,3 @@ window.addEventListener('beforeunload', () => {
 </script>
 </body>
 </html>
-

@@ -3,3 +3,6 @@ node_modules
 *.gif
 **/.DS_Store
 palette.png
+.env
+sds-gif-frame-*.png
+
