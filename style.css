@@ -35,6 +35,12 @@ video, canvas {
   margin: 5px;
 }
 
+.thumbnail--drag-over {
+  outline: 3px dashed #4a9eff;
+  outline-offset: 2px;
+  background: rgba(74, 158, 255, 0.12);
+}
+
 .thumbnail img {
   display: block;
   width: 160px; /* adjust thumbnail size */

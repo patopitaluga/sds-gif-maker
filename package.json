@@ -1,0 +1,24 @@
+{
+  "name": "sds-gif-maker",
+  "version": "1.0.0",
+  "description": "SDS Gifmaker v1",
+  "main": "gif.js",
+  "scripts": {
+    "start": "if [ -f .env ]; then node --env-file=.env ai-feature.js; else node ai-feature.js; fi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/patopitaluga/sds-gif-maker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/patopitaluga/sds-gif-maker/issues"
+  },
+  "homepage": "https://github.com/patopitaluga/sds-gif-maker#readme",
+  "dependencies": {
+    "openai": "^6.34.0"
+  }
+}

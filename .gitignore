@@ -1,1 +1,5 @@
 .DS_Store
+node_modules
+.env
+sds-gif-frame*.png
+output*.png
