@@ -17,21 +17,27 @@ const frameFiles = fs
 const data1 = fs.readFileSync('sds-gif-frame-01.png');
 const base64image1 = data1.toString('base64');
 
+let userPrompt = '';
+for (let i = 2; i < process.argv.length; i++) {
+  userPrompt += ' ' + process.argv[i];
+}
+userPrompt = userPrompt.trim();
+
 const startTime = new Date();
 const response = await openai.responses.create({
   model: 'gpt-5.4',
-  input: [{
-    role: 'user',
-    content: [
-      // { type: 'input_text', text: 'Turn this photo into an anime. Keep the same size and aspect ratio of the original image.' },
-      // { type: 'input_text', text: 'Turn this photo as if it was part of the Lego movie. Remember that lego figures always have the hands in c shape and don\'t have fingers. Keep the same size and aspect ratio of the original image.' },
-      { type: 'input_text', text: 'Turn this photo as if it were dogs from the Paw Patrols cartoon. Keep the same size and aspect ratio of the original image.' },
-      {
-        type: 'input_image',
-        image_url: `data:image/png;base64,${base64image1}`
-      },
-    ],
-  }],
+  input: [
+    {
+      role: 'user',
+      content: [
+        { type: 'input_text', text: `${userPrompt}. Keep the same size and aspect ratio of the original image.` },
+        {
+          type: 'input_image',
+          image_url: `data:image/png;base64,${base64image1}`
+        },
+      ],
+    }
+  ],
   tools: [{
     type: 'image_generation',
     model: 'gpt-image-2',
@@ -76,9 +82,7 @@ for (const file of frameFiles) {
     input: [{
       role: 'user',
       content: [
-        // { type: 'input_text', text: 'Turn this photo into an anime. Keep the same size and aspect ratio of the original image.' },
-        // { type: 'input_text', text: 'Turn this photo as if it was part of the Lego movie. Remember that lego figures always have the hands in c shape and don\'t have fingers. Keep the same size and aspect ratio of the original image.' },
-        { type: 'input_text', text: 'Turn this photo as if it were dogs from the Paw Patrols cartoon. Keep the same size and aspect ratio of the original image. Use the second image for consistency because this will be a frame in an animation' },
+        { type: 'input_text', text: `${userPrompt}. Keep the same size and aspect ratio of the original image. Use the second image for consistency because this will be a frame in an animation` },
         {
           type: 'input_image',
           image_url: `data:image/png;base64,${base64image1}`
