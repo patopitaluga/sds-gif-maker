@@ -5,14 +5,11 @@ body {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  margin: 0;
 }
 
 button {
-  border: 0;
-  border-radius: 5px;
-  cursor: pointer;
-  padding: 6px 8px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 video, canvas {
@@ -20,26 +17,15 @@ video, canvas {
   margin-right: auto;
   margin-top: 0;
   margin-bottom: 0;
-  display: block;
-}
-
-#app-container {
-  width: 100%;
-  max-width: 780px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .title, h1 {
-  font-family: sans-serif;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
   font-size: 28px;
   margin-bottom: 20px;
 }
 
-.controls {
-  margin-top: 1rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
-  align-items: center;
-}
+.controls { margin-top: 1rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
 .controls > * { padding: 0.5rem; font-size: 1rem; }
 
 
@@ -47,103 +33,32 @@ video, canvas {
   position: relative;
   display: inline-block;
   margin: 5px;
-  max-width: 25%;
-  width: 160px;
+}
+
+.thumbnail--drag-over {
+  outline: 3px dashed #4a9eff;
+  outline-offset: 2px;
+  background: rgba(74, 158, 255, 0.12);
 }
 
 .thumbnail img {
   display: block;
+  width: 160px; /* adjust thumbnail size */
   height: auto;
-  width: 100%;
 }
 
 .delete-btn {
-  border-radius: 0;
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: 0;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-.delete-btn span {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: #666;
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 2px 4px;
   cursor: pointer;
   font-size: 14px;
 }
-.delete-btn span:hover {
-}
-
-#sketch-container {
-  position: relative;
-  display: flex;
-  margin-left: auto;
-  margin-right: auto;
-}
-.overlay-controls {
-  position: absolute;
-  border-radius: 4px;
-  box-sizing: border-box;
-  padding: 0;
-  top: 0;
-  left: 0;
-  width: 100%;
-  bottom: 0;
-  display: flex;
-  gap: 5px;
-}
-.overlay-controls button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.whole-cam-button {
-  z-index: 100;
-  border-radius: 0;
-  background-color: transparent;
-  cursor: pointer;
-  display: block;
-  height: 100%;
-  position: relative;
-  flex: 1;
-  top: 0;
-  left: 0;
-}
-.burst-button {
-  position: absolute;
-  background-color: #eee;
-  z-index: 101;
-  right: 8px;
-  top: 8px;
-
-}
-
-.whole-cam-button span {
-  background-color: #eee;
-  border-radius: 5px;
-  display: inline-block;
-  padding: 6px 8px;
-  white-space: nowrap;
-  width: auto;
-  position: absolute;
-  left: 8px;
-  top: 8px;
-}
-
-#thumbnails canvas {
-  cursor: pointer; border: 1px solid #333;
-}
-.controls { margin-top: 8px; }
-
-.p5Canvas {
-  max-width: 100%;
+.delete-btn:hover {
+  background: rgba(200, 0, 0, 0.8);
 }
